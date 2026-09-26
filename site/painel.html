@@ -51,7 +51,7 @@ async function lista() {
   const ss = await fetch("/api/sessoes").then((r) => r.json());
   const peso = { fila: 0, humano: 1, ia: 2, encerrado: 3 };
   ss.sort((a, b) => peso[a.status] - peso[b.status] || b.criado.localeCompare(a.criado));
-  $("#lista").innerHTML = ss.map((s) => `<button class="item ${s.status} ${s.id === atual ? "sel" : ""}" data-id="${s.id}"><span class="badge">${LABEL[s.status]}</span><strong>${s.modo === "suporte" ? "Suporte" : "Vendas"} · ${s.id} · ${new Date(s.criado).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</strong><small>${esc(s.motivo || s.ultima || "")}</small></button>`).join("") || '<p class="vazio">Nenhum atendimento ainda</p>';
+  $("#lista").innerHTML = ss.map((s) => `<button class="item ${s.status} ${s.id === atual ? "sel" : ""}" data-id="${s.id}"><span class="badge">${LABEL[s.status]}</span><strong>Atendimento ${s.id} ·${new Date(s.criado).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</strong><small>${esc(s.motivo || s.ultima || "")}</small></button>`).join("") || '<p class="vazio">Nenhum atendimento ainda</p>';
 }
 
 function abrir(id) {
@@ -73,7 +73,7 @@ function abrir(id) {
 async function detalhe() {
   if (!atual) return;
   const s = await fetch(`/api/sessoes/${atual}?since=${vistos}`).then((r) => r.json());
-  $("#detalhe .info").innerHTML = `<b>${LABEL[s.status]}</b> · ${s.modo === "suporte" ? "Suporte" : "Vendas"}${s.motivo ? ` · <b>Motivo:</b> ${esc(s.motivo)}` : ""}${s.resumo ? `<br><b>Resumo da IA:</b> ${esc(s.resumo)}` : ""}${s.perfil?.plano ? `<br><b>Quiz:</b> ${esc(JSON.stringify(s.perfil))}` : ""}`;
+  $("#detalhe .info").innerHTML = `<b>${LABEL[s.status]}</b>${s.motivo ? ` · <b>Motivo:</b> ${esc(s.motivo)}` : ""}${s.resumo ? `<br><b>Resumo da IA:</b> ${esc(s.resumo)}` : ""}`;
   const log = $("#detalhe .log");
   for (const e of s.entries) {
     const d = document.createElement("div");

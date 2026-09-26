@@ -1,4 +1,4 @@
-// Fonte única dos planos: usada pelo quiz no navegador e pelo servidor (prompt da IA).
+// Planos da ETECC (dados do site). Usado pelo servidor para montar a base de conhecimento da IA.
 export const PLANOS = {
   "600": {
     nome: "600 MEGA", velocidade: 600, preco: 109.9,
@@ -23,11 +23,3 @@ export const EMPRESA = [
   "INTELIGENTE: link 1GB + Wi-Fi gerenciado + Hotspot + suporte empresarial + NOC Premium + firewall e segurança de rede + mini nobreak",
   "PRO: tudo do Inteligente + redundância 5GB ou fibra + suporte exclusivo",
 ];
-
-// Regra do plano ideal a partir do quiz.
-export function recomendar({ pessoas, uso, assistencia }) {
-  if (uso === "games") return "gamer";
-  if (assistencia === "sim" || pessoas === "5+") return "premium";
-  if (pessoas === "3-4" || uso === "streaming" || uso === "homeoffice") return "800";
-  return "600";
-}

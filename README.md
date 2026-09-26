@@ -2,18 +2,16 @@
 
 Tema: como usar tecnologia e IA para revolucionar as vendas da ETECC Telecom em Praia Grande.
 
-Réplica da home da ETECC (assets copiados de eteccnet.com.br) com uma seção nova,
-**Vendas e suporte com IA**, entre "Planos" e "Sobre". Tudo acontece no chat do site,
-sem mandar o cliente para o WhatsApp:
+Réplica da home da ETECC (assets copiados de eteccnet.com.br) com um assistente de IA no
+estilo ChatGPT, focado em resolver os problemas dos clientes da ETECC. Conversa livre, sem
+roteiro fixo, com uma base de conhecimento da empresa no prompt (planos, contatos, lojas,
+autoatendimento, E-Resolve) e um playbook de suporte. Tudo acontece no chat do site, sem
+mandar o cliente para o WhatsApp.
 
-**Vendas (cliente novo)**
-1. Quiz de 4 perguntas gera o plano ideal (regra em `site/planos.js`).
-2. A IA confirma o plano, pede CEP/bairro e consulta cobertura (`consultar_cobertura`).
-3. Com cobertura, coleta nome, telefone, endereço e data de instalação e fecha o pedido (`finalizar_pedido`, protocolo salvo em `registros.json`).
-
-**Suporte (cliente existente)**
-1. A IA identifica o cliente pelo telefone ou contrato (`consultar_cliente`, cadastro mockado).
-2. Diagnostica a conexão (bloqueio por fatura, ONU offline, manutenção programada, lentidão), informa fatura e link do Pix, e abre chamados de visita técnica, upgrade de plano ou mudança de endereço (`abrir_chamado`).
+**O que a IA sabe fazer** (ferramentas em `server.js`)
+- Identificar o cliente pelo telefone ou contrato (`consultar_cliente`, cadastro mockado) e diagnosticar: bloqueio por fatura, ONU offline, manutenção programada, lentidão no Wi-Fi.
+- Informar fatura e link do Pix; abrir chamados de visita técnica, upgrade, mudança de endereço ou outro (`abrir_chamado`).
+- Contratar um plano quando o cliente quiser: recomenda pelo uso, verifica cobertura por CEP/bairro (`consultar_cobertura`), coleta os dados e gera um cartão de confirmação; o pedido só é registrado quando o cliente toca em "Confirmar" (`finalizar_pedido`, protocolo em `registros.json`).
 
 **Atendente humano no mesmo chat**
 - Sem cobertura, empresa, cancelamento, contestação, reclamação ou pedido de atendente: a IA chama `encaminhar_atendente` com o resumo e sai da conversa.
@@ -37,8 +35,8 @@ Para forçar a OpenRouter, remova ou comente a linha `OPENAI_API_KEY`. Limite da
 npm start
 ```
 
-- Site: http://localhost:3000. A seção "Vendas e suporte com IA" (entre Planos e Sobre) e o botão flutuante "Fale com a ETECC" são a porta de entrada: a primeira escolha ou mensagem abre a tela dedicada.
-- Tela dedicada: http://localhost:3000/atendimento. Chat em tela cheia no estilo ChatGPT mobile (logo no topo, campo fixo embaixo, funciona no celular). Boa para QR code e para testes de várias pessoas. Aceita `?opt=vendas`, `?opt=suporte` ou `?q=mensagem`.
+- Site: http://localhost:3000. A seção "Assistente ETECC" (entre Planos e Sobre) e o botão flutuante "Fale com a ETECC" são a porta de entrada: a primeira mensagem ou sugestão abre a tela dedicada.
+- Tela dedicada: http://localhost:3000/atendimento. Chat em tela cheia no estilo ChatGPT mobile (logo no topo, sugestões iniciais, campo fixo embaixo, funciona no celular). Boa para QR code e para testes de várias pessoas. Aceita `?q=mensagem`.
 - Painel do atendente: http://localhost:3000/painel
 - Pedidos e chamados: `registros.json` ou http://localhost:3000/api/registros
 - Self-check da lógica: `node test.mjs`
