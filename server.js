@@ -23,7 +23,7 @@ const MODELOS_OR = (process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550
 // OpenAI: nano é o mais barato da família (troque por gpt-5.4-mini se o fluxo ficar impreciso);
 // gpt-5.x só aceita ferramentas no chat/completions com reasoning_effort "none".
 const PROVEDOR = process.env.OPENAI_API_KEY
-  ? { nome: "OpenAI", url: "https://api.openai.com/v1/chat/completions", key: process.env.OPENAI_API_KEY, modelo: process.env.OPENAI_MODEL || "gpt-5.4-nano", extra: { max_completion_tokens: 1024, ...(/^gpt-5\.[1-9]/.test(process.env.OPENAI_MODEL || "gpt-5.4-nano") ? { reasoning_effort: "none" } : {}) } } // gpt-4.1 não aceita reasoning_effort; gpt-5 (sem ponto) só aceita minimal e não chama ferramentas direito
+  ? { nome: "OpenAI", url: "https://api.openai.com/v1/chat/completions", key: process.env.OPENAI_API_KEY, modelo: process.env.OPENAI_MODEL || "gpt-4.1-nano", extra: { max_completion_tokens: 1024, ...(/^gpt-5\.[1-9]/.test(process.env.OPENAI_MODEL || "gpt-4.1-nano") ? { reasoning_effort: "none" } : {}) } } // gpt-4.1 não aceita reasoning_effort; gpt-5 (sem ponto) só aceita minimal e não chama ferramentas direito
   : { nome: "OpenRouter", url: "https://openrouter.ai/api/v1/chat/completions", key: process.env.OPENROUTER_API_KEY, modelo: MODELOS_OR[0], extra: { models: MODELOS_OR.slice(1), temperature: 0.3, max_tokens: 1024 } };
 
 // ---------- dados mockados ----------
@@ -125,9 +125,10 @@ function runTool(s, name, input) {
     case "consultar_cobertura": return consultarCobertura(input);
     case "consultar_cliente": return consultarCliente(input);
     case "finalizar_pedido": {
-      const protocolo = registrar({ tipo: "pedido", sessao: s.id, ...input });
-      s.log.push({ de: "sistema", tipo: "pedido", protocolo, ...input });
-      return { status: "confirmado", protocolo };
+      // o pedido só é registrado quando o cliente toca em "Confirmar" no cartão: não depende do modelo seguir o roteiro
+      s.pendente = input;
+      s.log.push({ de: "sistema", tipo: "confirmar", ...input });
+      return { status: "aguardando_confirmacao", instrucao: "Um cartão com o resumo apareceu para o cliente. Peça em uma frase para ele conferir e tocar em Confirmar pedido. Nada foi registrado ainda." };
     }
     case "abrir_chamado": {
       const reg = { ...input, tipo: "chamado", tipo_chamado: input.tipo, protocolo: null }; // input.tipo é o subtipo (visita_tecnica...)
@@ -173,12 +174,12 @@ Regras:
 - Não peça CPF, RG nem dados de cartão.
 - Depois de chamar encaminhar_atendente, apenas avise que o atendente continua no chat e não faça mais perguntas.`;
 
-async function completar(messages) {
+async function completar(messages, tool_choice = "auto") {
   if (!PROVEDOR.key) throw new Error("nenhuma chave de IA no .env (OPENAI_API_KEY ou OPENROUTER_API_KEY)");
   const r = await fetch(PROVEDOR.url, {
     method: "POST",
     headers: { Authorization: `Bearer ${PROVEDOR.key}`, "content-type": "application/json", "HTTP-Referer": `http://localhost:${PORT}`, "X-Title": "ETECC Assistente IA" },
-    body: JSON.stringify({ model: PROVEDOR.modelo, ...PROVEDOR.extra, messages: [{ role: "system", content: SYSTEM }, ...messages], tools, tool_choice: "auto" }),
+    body: JSON.stringify({ model: PROVEDOR.modelo, ...PROVEDOR.extra, messages: [{ role: "system", content: SYSTEM }, ...messages], tools, tool_choice }),
   });
   const data = await r.json();
   if (!r.ok || data.error) throw new Error(data.error?.message || `${PROVEDOR.nome} HTTP ${r.status}`);
@@ -188,7 +189,13 @@ async function completar(messages) {
 
 async function rodarIA(s) {
   for (let i = 0; i < 6; i++) { // ponytail: no máximo 6 rodadas de ferramenta por turno
-    const msg = await completar(s.messages);
+    let msg = await completar(s.messages);
+    // Modelos pequenos às vezes "prometem" a ação ("vou abrir um chamado, aguarde") sem chamar a ferramenta.
+    // Nesse caso repete a rodada obrigando uma chamada de ferramenta e descarta a promessa.
+    if (!msg.tool_calls?.length && /\b(vou|irei) (abrir|consultar|verificar|registrar|encaminhar|transferir|agendar)\b|aguarde o protocolo/i.test(msg.content || "")) {
+      console.log(`[${s.id}] promessa sem ferramenta, forçando tool_choice=required`);
+      msg = await completar(s.messages, "required");
+    }
     s.messages.push({ role: "assistant", content: msg.content || "", tool_calls: msg.tool_calls });
     const texto = (msg.content || "").replace(/<think>[\s\S]*?<\/think>/g, "").replace(/\*\*(.+?)\*\*/g, "$1").trim(); // modelos livres ignoram o "sem markdown" às vezes
     if (texto) s.log.push({ de: "ia", texto });
@@ -204,22 +211,38 @@ async function rodarIA(s) {
   }
 }
 
+async function responder(s) {
+  if (s.status !== "ia") return;
+  try {
+    await rodarIA(s);
+  } catch (e) {
+    console.error(e);
+    s.status = "fila"; s.motivo = "IA indisponível"; s.resumo = "Falha técnica na IA. Assumir a conversa pelo histórico.";
+    s.log.push({ de: "sistema", tipo: "fila", texto: "Nossa IA está indisponível agora. Um atendente humano vai continuar por aqui mesmo." });
+  }
+}
+
 async function chat({ sessionId, perfil = {}, text, since = 0 }) {
   const s = sessoes.get(sessionId) || novaSessao(perfil);
   if (text) {
     s.log.push({ de: "cliente", texto: text });
     if (s.status === "ia") s.messages.push({ role: "user", content: text });
   }
-  if (s.status === "ia") {
-    try {
-      await rodarIA(s);
-    } catch (e) {
-      console.error(e);
-      s.status = "fila"; s.motivo = "IA indisponível"; s.resumo = "Falha técnica na IA. Assumir a conversa pelo histórico.";
-      s.log.push({ de: "sistema", tipo: "fila", texto: "Nossa IA está indisponível agora. Um atendente humano vai continuar por aqui mesmo." });
-    }
-  }
+  await responder(s);
   return estado(s, since);
+}
+
+// cliente tocou em "Confirmar pedido" ou "Corrigir dados" no cartão
+async function decisaoPedido(s, acao) {
+  if (acao === "confirmar" && s.pendente) {
+    const protocolo = registrar({ tipo: "pedido", sessao: s.id, ...s.pendente });
+    s.log.push({ de: "sistema", tipo: "pedido", protocolo, ...s.pendente });
+    s.messages.push({ role: "user", content: `[sistema] O cliente confirmou o pedido no cartão. Protocolo ${protocolo} registrado. Encerre com uma frase curta de boas-vindas, sem perguntas.` });
+  } else {
+    s.messages.push({ role: "user", content: "[sistema] O cliente quer corrigir os dados do pedido. Pergunte o que precisa mudar." });
+  }
+  s.pendente = null;
+  await responder(s);
 }
 
 // ---------- HTTP ----------
@@ -235,13 +258,14 @@ if (isMain) http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/chat") return json(res, await chat(body));
 
-    const m = url.pathname.match(/^\/api\/sessoes(?:\/([\w-]+))?(?:\/(atendente|encerrar))?$/);
+    const m = url.pathname.match(/^\/api\/sessoes(?:\/([\w-]+))?(?:\/(atendente|encerrar|confirmar|corrigir))?$/);
     if (m) {
       if (!m[1]) return json(res, [...sessoes.values()].map((s) => ({ id: s.id, status: s.status, criado: s.criado, modo: s.perfil.modo, motivo: s.motivo, ultima: s.log.at(-1)?.texto?.slice(0, 80) })));
       const s = sessoes.get(m[1]);
       if (!s) return json(res, { error: "sessão não encontrada" }, 404);
       if (m[2] === "atendente" && body.texto) { s.status = "humano"; s.log.push({ de: "atendente", texto: body.texto }); }
       if (m[2] === "encerrar") { s.status = "encerrado"; s.log.push({ de: "sistema", tipo: "encerrado", texto: "Atendimento encerrado. Obrigado por falar com a ETECC!" }); }
+      if (m[2] === "confirmar" || m[2] === "corrigir") await decisaoPedido(s, m[2]);
       return json(res, estado(s, Number(url.searchParams.get("since") || 0)));
     }
 

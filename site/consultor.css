@@ -33,6 +33,11 @@
 .ec-price em{font-size:13px;font-style:normal;font-weight:400;color:var(--ink-soft)}
 .ec-plan ul{margin:6px 0 0;padding-left:18px;list-style:disc;font-size:13px;color:var(--ink-soft)}
 .ec-ok small{color:#16a34a}
+.ec-conf small{color:#2563eb}
+.ec-conf-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.ec-conf-btns button{border:0;border-radius:10px;padding:10px 16px;font-weight:700;font-size:14px;cursor:pointer;background:var(--primary,#e30613);color:#fff}
+.ec-conf-btns button+button{background:transparent;color:var(--ink);border:1.5px solid var(--surface-border)}
+.ec-conf-btns button:disabled{opacity:.5;cursor:not-allowed}
 .ec-humano{border-left:3px solid #2563eb}
 .ec-humano>small{display:block;font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
 .ec-bot a{color:var(--primary,#e30613);text-decoration:underline;word-break:break-all}

@@ -26,7 +26,7 @@ A IA usa a OpenAI se houver `OPENAI_API_KEY`; senão usa a OpenRouter com modelo
 
 ```
 OPENAI_API_KEY=sk-proj-...
-# OPENAI_MODEL=gpt-5.4-nano            (padrão; gpt-4.1-nano é mais barato ainda e também chama ferramentas; gpt-5.4-mini se quiser mais precisão)
+# OPENAI_MODEL=gpt-4.1-nano            (padrão, o mais barato que chama ferramentas; gpt-5.4-nano ou gpt-5.4-mini se quiser mais precisão)
 OPENROUTER_API_KEY=sk-or-v1-...
 # OPENROUTER_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free   (lista: principal + fallbacks)
 ```
@@ -51,7 +51,7 @@ O repositório tem um `Dockerfile` (Node 22, sem dependências npm). No Coolify:
 2. Porta exposta: `3000`.
 3. Variáveis de ambiente (aba Environment Variables):
    - `OPENAI_API_KEY` = sua chave (obrigatória para a IA funcionar)
-   - `OPENAI_MODEL` = `gpt-5.4-nano` (opcional)
+   - `OPENAI_MODEL` = `gpt-4.1-nano` (opcional, é o padrão)
    - `OPENROUTER_API_KEY` (opcional, só se quiser rodar sem a OpenAI)
 4. Deploy. Sem chave de IA o site sobe, mas toda conversa cai direto na fila do atendente humano.
 

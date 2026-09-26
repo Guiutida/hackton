@@ -78,7 +78,7 @@ async function detalhe() {
   for (const e of s.entries) {
     const d = document.createElement("div");
     d.className = "msg " + e.de;
-    d.innerHTML = (e.de === "ia" ? "<small>IA</small>" : e.de === "atendente" ? "<small>Você</small>" : "") + esc(e.texto || `${e.tipo === "pedido" ? "Pedido" : "Chamado"} ${e.protocolo}: ${e.plano || e.descricao || ""}`);
+    d.innerHTML = (e.de === "ia" ? "<small>IA</small>" : e.de === "atendente" ? "<small>Você</small>" : "") + esc(e.texto || `${{ pedido: "Pedido", confirmar: "Aguardando confirmação do cliente", chamado: "Chamado" }[e.tipo] || e.tipo} ${e.protocolo || ""}: ${e.plano || e.descricao || ""}`);
     log.append(d);
   }
   if (s.entries.length) log.scrollTop = log.scrollHeight;

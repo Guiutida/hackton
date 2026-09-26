@@ -83,6 +83,7 @@ function render({ sessionId, status, entries, total }) {
     if (e.de === "cliente") continue; // já mostrado na hora do envio
     if (e.de === "ia") text("bot", e.texto);
     else if (e.de === "atendente") bubble("bot ec-humano", `<small>Atendente ETECC</small>${linkify(e.texto)}`);
+    else if (e.tipo === "confirmar") bubble("bot", card("ec-conf", "Confira seu pedido", e.plano, [e.nome, e.telefone, e.endereco, "Instalação: " + e.instalacao]) + '<div class="ec-conf-btns"><button type="button" data-acao="confirmar">Confirmar pedido</button><button type="button" data-acao="corrigir">Corrigir dados</button></div>');
     else if (e.tipo === "pedido") bubble("bot", card("ec-ok", "Pedido registrado", `Protocolo ${e.protocolo}`, [e.plano, e.endereco, "Instalação: " + e.instalacao]));
     else if (e.tipo === "chamado") bubble("bot", card("ec-ok", "Chamado aberto", `Protocolo ${e.protocolo}`, [TIPO_CHAMADO[e.tipo_chamado] || "Chamado", e.descricao, e.agendamento && "Agendado: " + e.agendamento]));
     else if (e.tipo === "fila") bubble("bot ec-humano", `<small>Atendente humano</small>${esc(e.texto)}`);
@@ -139,6 +140,17 @@ form.onsubmit = (e) => {
     opts.innerHTML = "";
   }
   send(t);
+};
+msgs.onclick = async (ev) => { // botões do cartão "Confira seu pedido"
+  const b = ev.target.closest("[data-acao]");
+  if (!b) return;
+  b.parentElement.querySelectorAll("button").forEach((x) => (x.disabled = true));
+  text("user", b.textContent);
+  setInput(false, "Aguarde...");
+  const typing = bubble("bot", '<span class="ec-typing"><i></i><i></i><i></i></span>');
+  const r = await fetch(`/api/sessoes/${state.sessionId}/${b.dataset.acao}?since=${state.seen}`, { method: "POST" });
+  typing.remove();
+  if (r.ok) render(await r.json()); else setInput(true);
 };
 $(".ec-reset") && ($(".ec-reset").onclick = () => { reset(); history.replaceState(null, "", PAGINA); });
 reset();
