@@ -26,7 +26,7 @@ A IA usa a OpenAI se houver `OPENAI_API_KEY`; senão usa a OpenRouter com modelo
 
 ```
 OPENAI_API_KEY=sk-proj-...
-# OPENAI_MODEL=gpt-5.4-nano            (padrão, o mais barato; gpt-5.4-mini se quiser mais precisão)
+# OPENAI_MODEL=gpt-5.4-nano            (padrão; gpt-4.1-nano é mais barato ainda e também chama ferramentas; gpt-5.4-mini se quiser mais precisão)
 OPENROUTER_API_KEY=sk-or-v1-...
 # OPENROUTER_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free   (lista: principal + fallbacks)
 ```

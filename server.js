@@ -23,7 +23,7 @@ const MODELOS_OR = (process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550
 // OpenAI: nano é o mais barato da família (troque por gpt-5.4-mini se o fluxo ficar impreciso);
 // gpt-5.x só aceita ferramentas no chat/completions com reasoning_effort "none".
 const PROVEDOR = process.env.OPENAI_API_KEY
-  ? { nome: "OpenAI", url: "https://api.openai.com/v1/chat/completions", key: process.env.OPENAI_API_KEY, modelo: process.env.OPENAI_MODEL || "gpt-5.4-nano", extra: { reasoning_effort: "none", max_completion_tokens: 1024 } }
+  ? { nome: "OpenAI", url: "https://api.openai.com/v1/chat/completions", key: process.env.OPENAI_API_KEY, modelo: process.env.OPENAI_MODEL || "gpt-5.4-nano", extra: { max_completion_tokens: 1024, ...(/^gpt-5\.[1-9]/.test(process.env.OPENAI_MODEL || "gpt-5.4-nano") ? { reasoning_effort: "none" } : {}) } } // gpt-4.1 não aceita reasoning_effort; gpt-5 (sem ponto) só aceita minimal e não chama ferramentas direito
   : { nome: "OpenRouter", url: "https://openrouter.ai/api/v1/chat/completions", key: process.env.OPENROUTER_API_KEY, modelo: MODELOS_OR[0], extra: { models: MODELOS_OR.slice(1), temperature: 0.3, max_tokens: 1024 } };
 
 // ---------- dados mockados ----------
