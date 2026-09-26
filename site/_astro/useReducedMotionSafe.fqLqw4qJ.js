@@ -1,0 +1,1 @@
+import{r as o}from"./index.roP3k_Cl.js";import{h as t,g as r,p as n}from"./proxy.BuofUz0J.js";function u(){!t.current&&r();const[e]=o.useState(n.current);return e}function c(){return u()??!1}export{c as u};

@@ -1,0 +1,5 @@
+node_modules
+registros.json
+leads.json
+.env
+.claude/
